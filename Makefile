@@ -1,35 +1,42 @@
-CXX := g++
-CXXFLAGS := -Wall -Wextra -std=c++17 -Iinclude
+CXX        := g++
+CXXFLAGS   := -std=c++17 -Wall -Wextra -Iinclude
 
-# Folders
-SRC_DIR := src
-INC_DIR := include
-OUT_DIR := Compiled
-EXEC := $(OUT_DIR)/main
+PROGRAM_SRCS    := $(wildcard src/*.cpp)
+PROGRAM_OBJS    := $(patsubst src/%.cpp, build/%.o, $(PROGRAM_SRCS))
+PROGRAM_BIN     := build/program
 
-# Source and object files
-SRCS := $(wildcard $(SRC_DIR)/*.cpp)
-OBJS := $(patsubst $(SRC_DIR)/%.cpp, $(OUT_DIR)/%.o, $(SRCS))
+TEST_SRCS       := $(wildcard tests/*.cc)
+TEST_OBJS       := $(patsubst tests/%.cc, build/tests/%.o, $(TEST_SRCS))
+TEST_BIN        := build/test_runner
 
-# Default rule
-all: $(EXEC)
+PROGRAM_LDLIBS  :=
+TEST_LDLIBS     := -lgtest -lgtest_main -pthread
 
-# Create executable
-$(EXEC): $(OBJS)
-	@mkdir -p $(OUT_DIR)
-	$(CXX) $(OBJS) -o $(EXEC)
+.PHONY: all run test clean
 
-# Compile .cpp files into .o files
-$(OUT_DIR)/%.o: $(SRC_DIR)/%.cpp
-	@mkdir -p $(OUT_DIR)
+all: $(PROGRAM_BIN) $(TEST_BIN)
+
+$(PROGRAM_BIN): $(PROGRAM_OBJS)
+	mkdir -p build
+	$(CXX) $^ -o $@ $(PROGRAM_LDLIBS)
+
+$(TEST_BIN): $(TEST_OBJS)
+	mkdir -p build/tests
+	$(CXX) $^ -o $@ $(TEST_LDLIBS)
+
+build/%.o: src/%.cpp
+	mkdir -p build
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
-# Clean build files
+build/tests/%.o: tests/%.cc
+	mkdir -p build/tests
+	$(CXX) $(CXXFLAGS) -c $< -o $@
+
+run: $(PROGRAM_BIN)
+	./$(PROGRAM_BIN)
+
+test: $(TEST_BIN)
+	./$(TEST_BIN)
+
 clean:
-	rm -rf $(OUT_DIR)
-
-# Build and run
-run: all
-	$(EXEC)
-
-.PHONY: all clean run
+	rm -rf build
