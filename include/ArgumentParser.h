@@ -22,14 +22,14 @@ namespace Chat
      */
     typedef struct
     {
-        uint32_t address;
+        uint32_t ip;
         uint16_t port;
-    } ClientInfo;
+    } Address;
 
     namespace ArgumentParser
     {
         std::expected<ProgramType, ErrorCode> ParseProgramType(int argc, char **argv);
-        std::expected<ClientInfo, ErrorCode> ParseAddressPort(int argc, char **argv);
+        std::expected<Address, ErrorCode> ParseAddressPort(int argc, char **argv);
         std::expected<uint16_t, ErrorCode> ParsePort(int argc, char **argv);
     } // namespace ArgumentParser
 

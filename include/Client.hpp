@@ -49,12 +49,19 @@ namespace Chat
         bool m_init = false;
         fd_t m_socket = 0;
         char m_buffer[MAX_MESSAGE_SIZE];
+
+        /***
+         * @brief Sends a message from stdin to the server
+         *
+         * @returns Error Code
+         */
+        std::expected<void, ErrorCode> SendMessageFromInput();
     };
 
 } // namespace Chat
 
 template <size_t MAX_MESSAGE_SIZE>
-Chat::Client<MAX_MESSAGE_SIZE>::Client() : m_init(false), m_socket(0) {}
+Chat::Client<MAX_MESSAGE_SIZE>::Client() : m_init(), m_socket() {}
 
 template <size_t MAX_MESSAGE_SIZE>
 std::expected<void, Chat::ErrorCode> Chat::Client<MAX_MESSAGE_SIZE>::Initialize(uint32_t address, uint16_t port)
@@ -87,7 +94,8 @@ std::expected<void, Chat::ErrorCode> Chat::Client<MAX_MESSAGE_SIZE>::Initialize(
 template <size_t MAX_MESSAGE_SIZE>
 std::expected<void, Chat::ErrorCode> Chat::Client<MAX_MESSAGE_SIZE>::CommunicateWithServer()
 {
-    ssize_t sendRecvResult = 0;
+    ssize_t recvResult = 0;
+
     if (!m_init)
     {
         return std::unexpected(Chat::ErrorCode::UNINITIALIZED);
@@ -95,29 +103,43 @@ std::expected<void, Chat::ErrorCode> Chat::Client<MAX_MESSAGE_SIZE>::Communicate
 
     while (true)
     {
+        std::expected<void, Chat::ErrorCode> sendMessageReturnValue = SendMessageFromInput();
 
-        printf("Enter message: ");
-        if (fgets(m_buffer, sizeof(m_buffer), stdin) == NULL)
+        if (!sendMessageReturnValue.has_value())
         {
-            return std::unexpected(Chat::ErrorCode::INPUT_FROM_USER_ERROR);
+            return sendMessageReturnValue;
         }
 
-        sendRecvResult = send(m_socket, m_buffer, strnlen(m_buffer, MAX_MESSAGE_SIZE), 0);
-        if (sendRecvResult == SOCKET_ERROR_RETURN_VALUE)
-        {
-            return std::unexpected(Chat::ErrorCode::SEND_ERROR);
-        }
+        recvResult = recv(m_socket, m_buffer, MAX_MESSAGE_SIZE, 0);
 
-        printf("Sent to server!\n");
-        sendRecvResult = recv(m_socket, m_buffer, MAX_MESSAGE_SIZE, 0);
         // amount received in 'sendRecvResult'
-        if (sendRecvResult == SOCKET_ERROR_RETURN_VALUE || sendRecvResult == 0)
+        if (recvResult == SOCKET_ERROR_RETURN_VALUE || recvResult == 0)
         {
             return std::unexpected(Chat::ErrorCode::RECEIVE_ERROR);
         }
         printf("Message received from server: %s\n", m_buffer);
     }
 
+    return {};
+}
+template <size_t MAX_MESSAGE_SIZE>
+std::expected<void, Chat::ErrorCode> Chat::Client<MAX_MESSAGE_SIZE>::SendMessageFromInput()
+{
+    ssize_t sendResult = 0;
+
+    printf("Enter message: ");
+    if (fgets(m_buffer, sizeof(m_buffer), stdin) == NULL)
+    {
+        return std::unexpected(Chat::ErrorCode::INPUT_FROM_USER_ERROR);
+    }
+
+    sendResult = send(m_socket, m_buffer, strnlen(m_buffer, MAX_MESSAGE_SIZE), 0);
+    if (sendResult == SOCKET_ERROR_RETURN_VALUE)
+    {
+        return std::unexpected(Chat::ErrorCode::SEND_ERROR);
+    }
+
+    printf("Sent to server!\n");
     return {};
 }
 

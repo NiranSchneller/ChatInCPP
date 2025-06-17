@@ -50,14 +50,14 @@ std::expected<Chat::ProgramType, Chat::ErrorCode> Chat::ArgumentParser::ParsePro
     return std::unexpected(Chat::ErrorCode::ARGUMENT_PARSE_FAILURE);
 }
 
-std::expected<Chat::ClientInfo, Chat::ErrorCode> Chat::ArgumentParser::ParseAddressPort(int argc, char **argv)
+std::expected<Chat::Address, Chat::ErrorCode> Chat::ArgumentParser::ParseAddressPort(int argc, char **argv)
 {
     if (argv == nullptr || argv[ADDRESS_ARGUMENT_INDEX] == nullptr || argv[PORT_ARGUMENT_INDEX_CLIENT] == nullptr)
     {
         return std::unexpected(Chat::ErrorCode::INVALID_ARGUMENT);
     }
 
-    Chat::ClientInfo info = {0, 0};
+    Chat::Address info = {0, 0};
     if (argc != AMOUNT_REQUIRED_FOR_CLIENT)
     {
         return std::unexpected(Chat::ErrorCode::ARGUMENT_PARSE_FAILURE);
@@ -70,7 +70,7 @@ std::expected<Chat::ClientInfo, Chat::ErrorCode> Chat::ArgumentParser::ParseAddr
     {
         return std::unexpected(Chat::ErrorCode::ARGUMENT_PARSE_FAILURE);
     }
-    info.address = ip_addr.s_addr;
+    info.ip = ip_addr.s_addr;
 
     errno = ERRNO_SUCCESS_VALUE;
     uint16_t port = static_cast<uint16_t>(strtoul(argv[PORT_ARGUMENT_INDEX_CLIENT], NULL, 0));

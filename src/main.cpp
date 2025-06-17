@@ -33,7 +33,15 @@ int main(int argc, char **argv)
 {
 
     // Defaults to server if an error occurred
-    if (Chat::ArgumentParser::ParseProgramType(argc, argv).value_or(Chat::ProgramType::SERVER) == Chat::ProgramType::SERVER)
+
+    std::expected<Chat::ProgramType, Chat::ErrorCode> programType = Chat::ArgumentParser::ParseProgramType(argc, argv);
+    if (!programType.has_value())
+    {
+        printf("Could not parse program type!\n");
+        return 1;
+    }
+
+    if (programType == Chat::ProgramType::SERVER)
     {
         std::expected<uint16_t, Chat::ErrorCode> parsedPort = Chat::ArgumentParser::ParsePort(argc, argv);
         if (!parsedPort.has_value())
@@ -45,13 +53,13 @@ int main(int argc, char **argv)
     }
     else
     {
-        std::expected<Chat::ClientInfo, Chat::ErrorCode> parsedArgs = Chat::ArgumentParser::ParseAddressPort(argc, argv);
+        std::expected<Chat::Address, Chat::ErrorCode> parsedArgs = Chat::ArgumentParser::ParseAddressPort(argc, argv);
         if (!parsedArgs.has_value())
         {
             printf("Could not parse address and port!\n");
             return 1;
         }
-        client(parsedArgs.value().address, parsedArgs.value().port);
+        client(parsedArgs.value().ip, parsedArgs.value().port);
     }
 
     return 0;

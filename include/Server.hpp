@@ -59,7 +59,7 @@ namespace Chat
 static constexpr int SOCKET_ERROR_RETURN_VALUE = -1;
 
 template <size_t MAX_MESSAGE_SIZE>
-Chat::Server<MAX_MESSAGE_SIZE>::Server() : m_init(false), m_clientConnected(false), m_socket(0), m_clientSocket(0) {}
+Chat::Server<MAX_MESSAGE_SIZE>::Server() : m_init(), m_clientConnected(), m_socket(), m_clientSocket() {}
 
 template <size_t MAX_MESSAGE_SIZE>
 std::expected<void, Chat::ErrorCode> Chat::Server<MAX_MESSAGE_SIZE>::Initialize(uint16_t port, size_t listenQueueAmount)
