@@ -1,5 +1,5 @@
-CXX        := g++
-CXXFLAGS   := -std=c++17 -Wall -Wextra -Iinclude
+CXX        := g++-13
+CXXFLAGS   := -std=c++23 -Wall -Wextra -Iinclude
 
 # Source files
 PROGRAM_SRCS := $(filter-out src/main.cpp, $(wildcard src/*.cpp))
@@ -48,7 +48,7 @@ build/tests/%.o: tests/%.cc
 run:
 	$(MAKE) clean
 	$(MAKE) $(PROGRAM_BIN)
-	./$(PROGRAM_BIN)
+	./$(PROGRAM_BIN) $(ARGS)
 
 test:
 	$(MAKE) clean

@@ -3,7 +3,7 @@
 
 namespace Chat
 {
-    enum class StatusCode
+    enum class ErrorCode
     {
         SUCCESS,
         UNINITIALIZED,
@@ -12,7 +12,8 @@ namespace Chat
         CLIENT_CONNECTION_INITIALIZATION_ERROR,
         CLIENT_RECEIVE_ERROR,
         CLIENT_SEND_ERROR,
-        SOCKET_INITIALIZATION_ERROR
+        SOCKET_INITIALIZATION_ERROR,
+        ARGUMENT_PARSE_FAILURE
     };
 } // namespace Chat
 

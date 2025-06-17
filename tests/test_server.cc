@@ -9,19 +9,19 @@ static constexpr size_t LISTENING_QUEUE_AMOUNT = 1;
 TEST(TestServer, InitializeDestroy)
 {
     Chat::Server<MAX_MESSAGE_SIZE> server;
-    ASSERT_EQ(server.Initialize(SERVER_PORT, LISTENING_QUEUE_AMOUNT), Chat::StatusCode::SUCCESS);
+    ASSERT_TRUE(server.Initialize(SERVER_PORT, LISTENING_QUEUE_AMOUNT).has_value());
 }
 
 TEST(TestServer, InitializeTwice)
 {
     Chat::Server<MAX_MESSAGE_SIZE> server;
-    ASSERT_EQ(server.Initialize(SERVER_PORT, LISTENING_QUEUE_AMOUNT), Chat::StatusCode::SUCCESS);
-    ASSERT_EQ(server.Initialize(SERVER_PORT, LISTENING_QUEUE_AMOUNT), Chat::StatusCode::ALREADY_INITIALIZED);
+    ASSERT_TRUE(server.Initialize(SERVER_PORT, LISTENING_QUEUE_AMOUNT).has_value());
+    ASSERT_EQ(server.Initialize(SERVER_PORT, LISTENING_QUEUE_AMOUNT).error(), Chat::ErrorCode::ALREADY_INITIALIZED);
 }
 
 TEST(TestServer, OperateWithoutInitialization)
 {
     Chat::Server<MAX_MESSAGE_SIZE> server;
 
-    ASSERT_EQ(server.HandleClient(), Chat::StatusCode::UNINITIALIZED);
+    ASSERT_EQ(server.HandleClient().error(), Chat::ErrorCode::UNINITIALIZED);
 }

@@ -6,6 +6,7 @@
 #include <string.h>
 #include <netinet/in.h>
 #include <unistd.h>
+#include <expected>
 namespace Chat
 {
     template <size_t MAX_MESSAGE_SIZE>
@@ -21,14 +22,14 @@ namespace Chat
          *
          * @returns Status Code
          */
-        StatusCode Initialize(uint16_t port, size_t listenQueueAmount);
+        std::expected<void, ErrorCode> Initialize(uint16_t port, size_t listenQueueAmount);
 
         /**
          * @brief Handles a client and echoes messages until connection is closed
          *
          * @return Status code
          */
-        StatusCode HandleClient();
+        std::expected<void, ErrorCode> HandleClient();
 
         ~Server();
 
@@ -45,11 +46,11 @@ template <size_t MAX_MESSAGE_SIZE>
 Chat::Server<MAX_MESSAGE_SIZE>::Server() : m_init(false) {}
 
 template <size_t MAX_MESSAGE_SIZE>
-Chat::StatusCode Chat::Server<MAX_MESSAGE_SIZE>::Initialize(uint16_t port, size_t listenQueueAmount)
+std::expected<void, Chat::ErrorCode> Chat::Server<MAX_MESSAGE_SIZE>::Initialize(uint16_t port, size_t listenQueueAmount)
 {
     if (m_init)
     {
-        return Chat::StatusCode::ALREADY_INITIALIZED;
+        return std::unexpected(Chat::ErrorCode::ALREADY_INITIALIZED);
     }
 
     m_init = false;
@@ -58,7 +59,7 @@ Chat::StatusCode Chat::Server<MAX_MESSAGE_SIZE>::Initialize(uint16_t port, size_
     m_socket = socket(AF_INET, SOCK_STREAM, 0);
     if (m_socket == SOCKET_ERROR_RETURN_VALUE)
     {
-        return Chat::StatusCode::SOCKET_INITIALIZATION_ERROR;
+        return std::unexpected(Chat::ErrorCode::SOCKET_INITIALIZATION_ERROR);
     }
 
     sockaddr_in serverAddress;
@@ -69,32 +70,32 @@ Chat::StatusCode Chat::Server<MAX_MESSAGE_SIZE>::Initialize(uint16_t port, size_
     int result = bind(m_socket, (struct sockaddr *)&serverAddress, sizeof(serverAddress));
     if (result == SOCKET_ERROR_RETURN_VALUE)
     {
-        return Chat::StatusCode::SOCKET_INITIALIZATION_ERROR;
+        return std::unexpected(Chat::ErrorCode::SOCKET_INITIALIZATION_ERROR);
     }
 
     result = listen(m_socket, listenQueueAmount);
     if (result == SOCKET_ERROR_RETURN_VALUE)
     {
-        return Chat::StatusCode::SOCKET_INITIALIZATION_ERROR;
+        return std::unexpected(Chat::ErrorCode::SOCKET_INITIALIZATION_ERROR);
     }
 
     m_init = true;
-    return Chat::StatusCode::SUCCESS;
+    return {};
 }
 
 template <size_t MAX_MESSAGE_SIZE>
-Chat::StatusCode Chat::Server<MAX_MESSAGE_SIZE>::HandleClient()
+std::expected<void, Chat::ErrorCode> Chat::Server<MAX_MESSAGE_SIZE>::HandleClient()
 {
     if (!m_init)
     {
-        return Chat::StatusCode::UNINITIALIZED;
+        return std::unexpected(Chat::ErrorCode::UNINITIALIZED);
     }
 
     ssize_t sendRecvResult = 0;
     int clientSocket = accept(m_socket, nullptr, nullptr);
     if (clientSocket == SOCKET_ERROR_RETURN_VALUE)
     {
-        return Chat::StatusCode::CLIENT_CONNECTION_INITIALIZATION_ERROR;
+        return std::unexpected(Chat::ErrorCode::CLIENT_CONNECTION_INITIALIZATION_ERROR);
     }
     printf("Client connected!\n");
     while (true)
@@ -103,14 +104,14 @@ Chat::StatusCode Chat::Server<MAX_MESSAGE_SIZE>::HandleClient()
         // amount received in 'sendRecvResult'
         if (sendRecvResult == SOCKET_ERROR_RETURN_VALUE || sendRecvResult == 0)
         {
-            return Chat::StatusCode::CLIENT_RECEIVE_ERROR;
+            return std::unexpected(Chat::ErrorCode::CLIENT_RECEIVE_ERROR);
         }
         printf("Message received from client!\n");
 
         sendRecvResult = send(clientSocket, m_buffer, sendRecvResult, 0);
         if (sendRecvResult == SOCKET_ERROR_RETURN_VALUE)
         {
-            return Chat::StatusCode::CLIENT_RECEIVE_ERROR;
+            return std::unexpected(Chat::ErrorCode::CLIENT_RECEIVE_ERROR);
         }
         printf("Echoed to client!\n");
     }
