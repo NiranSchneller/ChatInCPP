@@ -106,6 +106,7 @@ Chat::StatusCode Chat::Server<MAX_MESSAGE_SIZE>::HandleClient()
     while (true)
     {
         sendRecvResult = recv(clientSocket, m_buffer, MAX_MESSAGE_SIZE, 0);
+        // amount received in 'sendRecvResult'
         if (sendRecvResult == SOCKET_ERROR_RETURN_VALUE || sendRecvResult == 0)
         {
             return Chat::StatusCode::CLIENT_RECEIVE_ERROR;
