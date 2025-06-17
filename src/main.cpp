@@ -14,6 +14,5 @@ int main(void)
         server.HandleClient();
         printf("Moving on to next client!\n");
     }
-    server.Destroy();
     return 0;
 }

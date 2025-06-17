@@ -30,13 +30,7 @@ namespace Chat
          */
         StatusCode HandleClient();
 
-        /**
-         * @brief Destroys Initialized socket
-         *
-         * @returns Status Code
-         */
-        StatusCode Destroy();
-        ~Server() = default;
+        ~Server();
 
     private:
         bool m_init;
@@ -123,20 +117,13 @@ Chat::StatusCode Chat::Server<MAX_MESSAGE_SIZE>::HandleClient()
 }
 
 template <size_t MAX_MESSAGE_SIZE>
-Chat::StatusCode Chat::Server<MAX_MESSAGE_SIZE>::Destroy()
+Chat::Server<MAX_MESSAGE_SIZE>::~Server()
 {
     if (!m_init)
     {
-        return Chat::StatusCode::UNINITIALIZED;
+        return; // Don't close unopened socket
     }
-
-    int result = close(m_socket);
-    if (result == SOCKET_ERROR_RETURN_VALUE)
-    {
-        return Chat::StatusCode::SOCKET_DESTROY_ERROR;
-    }
-
+    close(m_socket);
     m_init = false;
-    return Chat::StatusCode::SUCCESS;
 }
 #endif
