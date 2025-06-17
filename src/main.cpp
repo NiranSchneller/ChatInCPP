@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include "Server.hpp"
 #include "ArgumentParser.h"
+#include "Client.hpp"
 static constexpr size_t MAX_MESSAGE_SIZE = 100;
 static constexpr size_t LISTENING_QUEUE_AMOUNT = 1;
 
@@ -19,6 +20,10 @@ void server(uint16_t port)
 void client(uint32_t address, uint16_t port)
 {
     printf("Will connect to server with address %d and port %d\n", address, port);
+    Chat::Client<MAX_MESSAGE_SIZE> client;
+
+    client.Initialize(address, port);
+    client.CommunicateWithServer();
 }
 
 int main(int argc, char **argv)

@@ -1,6 +1,6 @@
 #include <gtest/gtest.h>
 #include "Server.hpp"
-#include "StatusCodes.h"
+#include "ErrorCodes.h"
 
 static constexpr size_t MAX_MESSAGE_SIZE = 100;
 static constexpr uint16_t SERVER_PORT = 6000;

@@ -1,5 +1,5 @@
 #include "ArgumentParser.h"
-#include "StatusCodes.h"
+#include "ErrorCodes.h"
 #include <string.h>
 #include <arpa/inet.h>
 #include <stdlib.h>

@@ -1,7 +1,7 @@
 #ifndef SERVER_H
 #define SERVER_H
 #include <sys/socket.h>
-#include "StatusCodes.h"
+#include "ErrorCodes.h"
 #include <stdint.h>
 #include <string.h>
 #include <netinet/in.h>
@@ -104,17 +104,19 @@ std::expected<void, Chat::ErrorCode> Chat::Server<MAX_MESSAGE_SIZE>::HandleClien
         // amount received in 'sendRecvResult'
         if (sendRecvResult == SOCKET_ERROR_RETURN_VALUE || sendRecvResult == 0)
         {
-            return std::unexpected(Chat::ErrorCode::CLIENT_RECEIVE_ERROR);
+            return std::unexpected(Chat::ErrorCode::RECEIVE_ERROR);
         }
         printf("Message received from client!\n");
 
         sendRecvResult = send(clientSocket, m_buffer, sendRecvResult, 0);
         if (sendRecvResult == SOCKET_ERROR_RETURN_VALUE)
         {
-            return std::unexpected(Chat::ErrorCode::CLIENT_RECEIVE_ERROR);
+            return std::unexpected(Chat::ErrorCode::SEND_ERROR);
         }
         printf("Echoed to client!\n");
     }
+
+    return {};
 }
 
 template <size_t MAX_MESSAGE_SIZE>

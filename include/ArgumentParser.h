@@ -1,7 +1,7 @@
 #ifndef ARGUMENT_PARSER_H
 #define ARGUMENT_PARSER_H
 
-#include "StatusCodes.h"
+#include "ErrorCodes.h"
 #include <stdint.h>
 #include <expected>
 namespace Chat
