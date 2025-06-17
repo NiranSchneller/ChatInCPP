@@ -1,25 +1,31 @@
 #ifndef CHAT_CLIENT_HPP
 #define CHAT_CLIENT_HPP
 
+#include "ErrorCodes.h"
+
 #include <stdint.h>
 #include <stddef.h>
 #include <expected>
-#include "ErrorCodes.h"
 #include <string.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <unistd.h>
 #include <stdio.h>
 
-#define SOCKET_ERROR_RETURN_VALUE -1 // Not constexpr since it is included with server.hpp and it will conflict
-
 namespace Chat
 {
+    static constexpr int SOCKET_ERROR_RETURN_VALUE = -1;
+    using fd_t = int;
+
+    /**
+     * @brief This class represents a client that can communicate with a server given an address and port
+     */
     template <size_t MAX_MESSAGE_SIZE>
     class Client
     {
     public:
         Client();
+
         ~Client();
 
         /**
@@ -33,22 +39,22 @@ namespace Chat
         std::expected<void, ErrorCode> Initialize(uint32_t address, uint16_t port);
 
         /**
-         * @brief Sends and receives messages from the server until connection is closed
+         * @brief Exchanged messages with the server until connection is closed
          *
          * @returns Error Code
          */
         std::expected<void, ErrorCode> CommunicateWithServer();
 
     private:
-        bool m_init;
-        int m_socket;
+        bool m_init = false;
+        fd_t m_socket = 0;
         char m_buffer[MAX_MESSAGE_SIZE];
     };
 
 } // namespace Chat
 
 template <size_t MAX_MESSAGE_SIZE>
-Chat::Client<MAX_MESSAGE_SIZE>::Client() : m_init(false) {}
+Chat::Client<MAX_MESSAGE_SIZE>::Client() : m_init(false), m_socket(0) {}
 
 template <size_t MAX_MESSAGE_SIZE>
 std::expected<void, Chat::ErrorCode> Chat::Client<MAX_MESSAGE_SIZE>::Initialize(uint32_t address, uint16_t port)

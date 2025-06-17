@@ -1,17 +1,25 @@
 #ifndef ARGUMENT_PARSER_H
 #define ARGUMENT_PARSER_H
 
-#include "ErrorCodes.h"
 #include <stdint.h>
 #include <expected>
+
+#include "ErrorCodes.h"
+
 namespace Chat
 {
+    /**
+     * @brief Enum to represent the type of program being run (server or client)
+     */
     enum class ProgramType
     {
         CLIENT,
         SERVER
     };
 
+    /**
+     * @brief Information that the client needs to connect to a server
+     */
     typedef struct
     {
         uint32_t address;

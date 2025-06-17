@@ -1,7 +1,9 @@
 #include <stdio.h>
+
 #include "Server.hpp"
 #include "ArgumentParser.h"
 #include "Client.hpp"
+
 static constexpr size_t MAX_MESSAGE_SIZE = 100;
 static constexpr size_t LISTENING_QUEUE_AMOUNT = 1;
 
@@ -12,6 +14,7 @@ void server(uint16_t port)
     server.Initialize(port, LISTENING_QUEUE_AMOUNT);
     while (true)
     {
+        server.AcceptClient();
         server.HandleClient();
         printf("Moving on to next client!\n");
     }

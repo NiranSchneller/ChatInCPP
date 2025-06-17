@@ -3,9 +3,11 @@
 
 namespace Chat
 {
+    /**
+     * @brief Represents the various Error Codes that the programs functions can return
+     */
     enum class ErrorCode
     {
-        SUCCESS,
         UNINITIALIZED,
         SOCKET_DESTROY_ERROR,
         ALREADY_INITIALIZED,
@@ -14,7 +16,10 @@ namespace Chat
         SEND_ERROR,
         INPUT_FROM_USER_ERROR,
         SOCKET_INITIALIZATION_ERROR,
-        ARGUMENT_PARSE_FAILURE
+        ARGUMENT_PARSE_FAILURE,
+        CLIENT_NOT_CONNECTED,
+        MESSAGE_RECEIVED_TOO_BIG,
+        INVALID_ARGUMENT
     };
 } // namespace Chat
 

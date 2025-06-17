@@ -23,5 +23,6 @@ TEST(TestServer, OperateWithoutInitialization)
 {
     Chat::Server<MAX_MESSAGE_SIZE> server;
 
+    ASSERT_EQ(server.AcceptClient().error(), Chat::ErrorCode::UNINITIALIZED);
     ASSERT_EQ(server.HandleClient().error(), Chat::ErrorCode::UNINITIALIZED);
 }
