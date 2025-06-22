@@ -3,7 +3,7 @@
 #include "Server.hpp"
 #include "ArgumentParser.h"
 #include "Client.hpp"
-
+#include "MessageQueue.hpp"
 static constexpr size_t MAX_MESSAGE_SIZE = 100;
 static constexpr size_t LISTENING_QUEUE_AMOUNT = 1;
 

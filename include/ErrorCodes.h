@@ -19,7 +19,12 @@ namespace Chat
         ARGUMENT_PARSE_FAILURE,
         CLIENT_NOT_CONNECTED,
         MESSAGE_RECEIVED_TOO_BIG,
-        INVALID_ARGUMENT
+        INVALID_ARGUMENT,
+
+        DATA_STRUCTURE_FULL,
+        EPOLL_ERROR,
+        DATA_STRUCTURE_EMPTY,
+        NOT_FOUND
     };
 } // namespace Chat
 
