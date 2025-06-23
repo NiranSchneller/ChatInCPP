@@ -10,14 +10,14 @@ static constexpr size_t LISTENING_QUEUE_AMOUNT = 1;
 void server(uint16_t port)
 {
     printf("Starting server on port %d!\n", port);
-    Chat::Server<MAX_MESSAGE_SIZE> server;
-    server.Initialize(port, LISTENING_QUEUE_AMOUNT);
-    while (true)
-    {
-        server.AcceptClient();
-        server.HandleClient();
-        printf("Moving on to next client!\n");
-    }
+    // Chat::Server<MAX_MESSAGE_SIZE> server;
+    // server.Initialize(port, LISTENING_QUEUE_AMOUNT);
+    // while (true)
+    // {
+    //     server.AcceptClient();
+    //     server.HandleClient();
+    //     printf("Moving on to next client!\n");
+    // }
 }
 
 void client(uint32_t address, uint16_t port)

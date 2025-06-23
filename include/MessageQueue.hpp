@@ -49,7 +49,7 @@ namespace Chat
     template <size_t MAX_MESSAGES, size_t MAX_MESSAGE_SIZE>
     MessageQueue<MAX_MESSAGES, MAX_MESSAGE_SIZE>::MessageQueue() : m_queueSize(0), m_firstVacantSlot(0)
     {
-        memset(m_messagesBuffer, 0, MAX_MESSAGES * Message<MAX_MESSAGE_SIZE>);
+        memset(m_messagesBuffer, 0, MAX_MESSAGES * sizeof(Message<MAX_MESSAGE_SIZE>));
     }
 
     template <size_t MAX_MESSAGES, size_t MAX_MESSAGE_SIZE>

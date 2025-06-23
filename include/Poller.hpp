@@ -30,7 +30,8 @@ namespace Chat
          *
          * @returns Error Code
          */
-        std::expected<void, ErrorCode> AddToPoll(struct PollerData *data);
+        template <size_t MAX_MESSAGES, size_t MAX_MESSAGE_SIZE, size_t MAX_USERNAME_LENGTH>
+        std::expected<void, ErrorCode> AddToPoll(struct PollerData<MAX_MESSAGES, MAX_MESSAGE_SIZE, MAX_USERNAME_LENGTH> *data);
 
         /**
          * @brief Removes specified file descriptor from Polling
@@ -49,7 +50,8 @@ namespace Chat
          *
          * @returns amount of PollerData's in the array or error code.
          */
-        std::expected<size_t, ErrorCode> GetActive(struct PollerData **o_dataArray, size_t dataArraySize); // Returns amount of PollerData in arr
+        template <size_t MAX_MESSAGES, size_t MAX_MESSAGE_SIZE, size_t MAX_USERNAME_LENGTH>
+        std::expected<size_t, ErrorCode> GetActive(struct PollerData<MAX_MESSAGES, MAX_MESSAGE_SIZE, MAX_USERNAME_LENGTH> **o_dataArray, size_t dataArraySize); // Returns amount of PollerData in arr
 
     private:
         fd_t m_interestListFD = 0;
@@ -77,10 +79,11 @@ namespace Chat
     }
 
     template <size_t MAX_USERS>
-    std::expected<void, ErrorCode> Poller<MAX_USERS>::AddToPoll(struct PollerData *data)
+    template <size_t MAX_MESSAGES, size_t MAX_MESSAGE_SIZE, size_t MAX_USERNAME_LENGTH>
+    std::expected<void, ErrorCode> Poller<MAX_USERS>::AddToPoll(struct PollerData<MAX_MESSAGES, MAX_MESSAGE_SIZE, MAX_USERNAME_LENGTH> *data)
     {
         struct epoll_event event;
-        event.events = EPOLLIN | EPOLLET; // Edge-triggered for readability
+        event.events = EPOLLIN;
         event.data.u64 = data;
 
         if (epoll_ctl(m_interestListFD, EPOLL_CTL_ADD, data->fileDescriptor, &event) == FAILED_FD)
@@ -103,7 +106,8 @@ namespace Chat
     }
 
     template <size_t MAX_USERS>
-    std::expected<size_t, ErrorCode> Poller<MAX_USERS>::GetActive(struct PollerData **o_dataArray, size_t dataArraySize)
+    template <size_t MAX_MESSAGES, size_t MAX_MESSAGE_SIZE, size_t MAX_USERNAME_LENGTH>
+    std::expected<size_t, ErrorCode> Poller<MAX_USERS>::GetActive(struct PollerData<MAX_MESSAGES, MAX_MESSAGE_SIZE, MAX_USERNAME_LENGTH> **o_dataArray, size_t dataArraySize)
     {
         if (dataArraySize < MAX_USERS)
         {

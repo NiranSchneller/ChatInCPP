@@ -118,6 +118,7 @@ namespace Chat
         return {};
     }
 
+    template <size_t MAX_USERS, size_t MAX_MESSAGES, size_t MAX_MESSAGE_SIZE, size_t MAX_USERNAME_LENGTH>
     UserManager<MAX_USERS, MAX_MESSAGES, MAX_MESSAGE_SIZE, MAX_USERNAME_LENGTH>::~UserManager()
     {
         m_dictionarySize = 0;

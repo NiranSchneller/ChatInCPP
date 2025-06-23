@@ -9,6 +9,9 @@
 #include <expected>
 
 #include "ErrorCodes.h"
+#include "UserManager.hpp"
+#include "Poller.hpp"
+#include "PollerData.hpp"
 
 namespace Chat
 {
@@ -16,7 +19,7 @@ namespace Chat
      * @brief Represents a server which can sequentially accept incoming client connections
      */
     using fd_t = int;
-    template <size_t MAX_MESSAGE_SIZE>
+    template <size_t MAX_USERS, size_t MAX_MESSAGES, size_t MAX_MESSAGE_SIZE, size_t MAX_USERNAME_LENGTH>
     class Server
     {
     public:
@@ -33,37 +36,29 @@ namespace Chat
          */
         std::expected<void, ErrorCode> Initialize(uint16_t port, size_t listenQueueAmount);
 
-        /**
-         * @brief Accepts an incoming client
-         *
-         * @returns Error code
-         */
-        std::expected<void, ErrorCode> AcceptClient();
-
-        /**
-         * @brief Handles a client and echoes messages until connection is closed
-         *
-         * @return Status code
-         */
-        std::expected<void, ErrorCode> HandleClient();
+        std::expected<void, ErrorCode> Run();
 
     private:
         bool m_init = false;
         bool m_clientConnected = false;
         fd_t m_socket = 0;
         fd_t m_clientSocket = 0;
+
+        Poller<MAX_USERS> m_poller;
+        UserManager<MAX_USERS, MAX_MESSAGES, MAX_MESSAGE_SIZE, MAX_USERNAME_LENGTH> m_userManager;
         uint8_t m_buffer[MAX_MESSAGE_SIZE];
     };
 } // namespace Chat
 
 static constexpr int SOCKET_ERROR_RETURN_VALUE = -1;
 
-template <size_t MAX_MESSAGE_SIZE>
-Chat::Server<MAX_MESSAGE_SIZE>::Server() : m_init(), m_clientConnected(), m_socket(), m_clientSocket() {}
+template <size_t MAX_USERS, size_t MAX_MESSAGES, size_t MAX_MESSAGE_SIZE, size_t MAX_USERNAME_LENGTH>
+Chat::Server<MAX_USERS, MAX_MESSAGES, MAX_MESSAGE_SIZE, MAX_USERNAME_LENGTH>::Server() : m_init(), m_clientConnected(), m_socket(), m_clientSocket() {}
 
-template <size_t MAX_MESSAGE_SIZE>
-std::expected<void, Chat::ErrorCode> Chat::Server<MAX_MESSAGE_SIZE>::Initialize(uint16_t port, size_t listenQueueAmount)
+template <size_t MAX_USERS, size_t MAX_MESSAGES, size_t MAX_MESSAGE_SIZE, size_t MAX_USERNAME_LENGTH>
+std::expected<void, Chat::ErrorCode> Chat::Server<MAX_USERS, MAX_MESSAGES, MAX_MESSAGE_SIZE, MAX_USERNAME_LENGTH>::Initialize(uint16_t port, size_t listenQueueAmount)
 {
+    std::expected<void, Chat::ErrorCode> returnCode;
     if (m_init)
     {
         return std::unexpected(Chat::ErrorCode::ALREADY_INITIALIZED);
@@ -95,79 +90,45 @@ std::expected<void, Chat::ErrorCode> Chat::Server<MAX_MESSAGE_SIZE>::Initialize(
         return std::unexpected(Chat::ErrorCode::SOCKET_INITIALIZATION_ERROR);
     }
 
+    returnCode = m_poller.Initialize();
+    if (!returnCode.has_value())
+    {
+        return returnCode;
+    }
+
     m_init = true;
     return {};
 }
-template <size_t MAX_MESSAGE_SIZE>
-std::expected<void, Chat::ErrorCode> Chat::Server<MAX_MESSAGE_SIZE>::AcceptClient()
+template <size_t MAX_USERS, size_t MAX_MESSAGES, size_t MAX_MESSAGE_SIZE, size_t MAX_USERNAME_LENGTH>
+std::expected<void, Chat::ErrorCode> Chat::Server<MAX_USERS, MAX_MESSAGES, MAX_MESSAGE_SIZE, MAX_USERNAME_LENGTH>::Run()
 {
-    if (!m_init)
+    std::expected<void, Chat::ErrorCode> returnCode;
+    Chat::PollerData<MAX_MESSAGES, MAX_MESSAGE_SIZE, MAX_USERNAME_LENGTH> serverSocketPollerData;
+    Chat::UserEntity<MAX_MESSAGES, MAX_MESSAGE_SIZE, MAX_USERNAME_LENGTH> serverUserEntity;
+    serverUserEntity.username = "";
+    serverUserEntity.usernameLength = 0;
+
+    serverSocketPollerData.fileDescriptor = m_socket;
+    serverSocketPollerData.userEntity = &serverUserEntity;
+
+    returnCode = m_poller.AddToPoll(&serverSocketPollerData);
+    if (!returnCode.has_value())
     {
-        return std::unexpected(Chat::ErrorCode::UNINITIALIZED);
+        return returnCode;
     }
 
-    m_clientSocket = accept(m_socket, nullptr, nullptr);
-    if (m_clientSocket == SOCKET_ERROR_RETURN_VALUE)
-    {
-        return std::unexpected(Chat::ErrorCode::CLIENT_CONNECTION_INITIALIZATION_ERROR);
-    }
-
-    printf("Client connected!\n");
-    m_clientConnected = true;
-    return {};
-}
-
-template <size_t MAX_MESSAGE_SIZE>
-std::expected<void, Chat::ErrorCode> Chat::Server<MAX_MESSAGE_SIZE>::HandleClient()
-{
-    std::unexpected<Chat::ErrorCode> errorCode = std::unexpected(Chat::ErrorCode::UNINITIALIZED);
-    if (!m_init)
-    {
-        return std::unexpected(Chat::ErrorCode::UNINITIALIZED);
-    }
-
-    if (!m_clientConnected)
-    {
-        return std::unexpected(Chat::ErrorCode::CLIENT_NOT_CONNECTED);
-    }
-
-    ssize_t sendRecvResult = 0;
-
+    PollerData<MAX_MESSAGES, MAX_MESSAGE_SIZE, MAX_USERNAME_LENGTH> *socketPollerDatas[MAX_USERS] = {0};
     while (true)
     {
-        sendRecvResult = recv(m_clientSocket, m_buffer, MAX_MESSAGE_SIZE, 0);
-
-        // amount received in 'sendRecvResult'
-        if (sendRecvResult == SOCKET_ERROR_RETURN_VALUE || sendRecvResult == 0)
+        if (!m_poller.GetActive(socketPollerDatas, MAX_USERS).has_value())
         {
-            errorCode = std::unexpected(Chat::ErrorCode::RECEIVE_ERROR);
-            break;
+            printf("Poller getActive Failed! Critical error!\n");
         }
-
-        if (static_cast<size_t>(sendRecvResult) > MAX_MESSAGE_SIZE)
-        {
-            errorCode = std::unexpected(Chat::ErrorCode::MESSAGE_RECEIVED_TOO_BIG);
-            break;
-        }
-
-        printf("Message received from client!\n");
-
-        sendRecvResult = send(m_clientSocket, m_buffer, sendRecvResult, 0);
-        if (sendRecvResult == SOCKET_ERROR_RETURN_VALUE)
-        {
-            errorCode = std::unexpected(Chat::ErrorCode::SEND_ERROR);
-            break;
-        }
-        printf("Echoed to client!\n");
     }
-
-    m_clientConnected = false;
-    close(m_clientSocket);
-    return errorCode;
 }
 
-template <size_t MAX_MESSAGE_SIZE>
-Chat::Server<MAX_MESSAGE_SIZE>::~Server()
+template <size_t MAX_USERS, size_t MAX_MESSAGES, size_t MAX_MESSAGE_SIZE, size_t MAX_USERNAME_LENGTH>
+Chat::Server<MAX_USERS, MAX_MESSAGES, MAX_MESSAGE_SIZE, MAX_USERNAME_LENGTH>::~Server()
 {
     if (!m_init)
     {
