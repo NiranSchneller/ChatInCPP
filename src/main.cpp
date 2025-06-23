@@ -4,20 +4,23 @@
 #include "ArgumentParser.h"
 #include "Client.hpp"
 #include "MessageQueue.hpp"
+static constexpr size_t MAX_USERS = 10;
+static constexpr size_t MAX_MESSAGES_PER_USER = 10;
 static constexpr size_t MAX_MESSAGE_SIZE = 100;
+static constexpr size_t MAX_USERNAME_LENGTH = 20;
 static constexpr size_t LISTENING_QUEUE_AMOUNT = 1;
 
 void server(uint16_t port)
 {
     printf("Starting server on port %d!\n", port);
-    // Chat::Server<MAX_MESSAGE_SIZE> server;
-    // server.Initialize(port, LISTENING_QUEUE_AMOUNT);
-    // while (true)
-    // {
-    //     server.AcceptClient();
-    //     server.HandleClient();
-    //     printf("Moving on to next client!\n");
-    // }
+    Chat::Server<MAX_USERS, MAX_MESSAGES_PER_USER, MAX_MESSAGE_SIZE, MAX_USERNAME_LENGTH> server;
+    if (!server.Initialize(port, LISTENING_QUEUE_AMOUNT).has_value())
+    {
+        printf("Server could not be initialized!\n");
+        return;
+    }
+
+    server.Run();
 }
 
 void client(uint32_t address, uint16_t port)

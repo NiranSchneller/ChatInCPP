@@ -15,7 +15,7 @@ static constexpr size_t MEMCMP_EQUAL_VALUE = 0;
 
 namespace Chat
 {
-    template <size_t MAX_USERS, size_t MAX_MESSAGES, size_t MAX_MESSAGE_SIZE, size_t MAX_USERNAME_LENGTH>
+    template <size_t MAX_USERS, size_t MAX_MESSAGES_PER_USER, size_t MAX_MESSAGE_SIZE, size_t MAX_USERNAME_LENGTH>
     class UserManager
     {
     public:
@@ -29,7 +29,7 @@ namespace Chat
          *
          * @returns ErrorCode on error
          */
-        std::expected<void, ErrorCode> AddUser(UserEntity<MAX_MESSAGES, MAX_MESSAGE_SIZE, MAX_USERNAME_LENGTH> usernameToAdd);
+        std::expected<void, ErrorCode> AddUser(UserEntity<MAX_MESSAGES_PER_USER, MAX_MESSAGE_SIZE, MAX_USERNAME_LENGTH> usernameToAdd);
 
         /**
          * @brief Get a message for the said username. In case of no message, size will be 0.
@@ -60,14 +60,14 @@ namespace Chat
         UserEntity<MAX_MESSAGES, MAX_MESSAGE_SIZE, MAX_USERNAME_LENGTH> m_userToMessageQueue[MAX_USERS];
     };
 
-    template <size_t MAX_USERS, size_t MAX_MESSAGES, size_t MAX_MESSAGE_SIZE, size_t MAX_USERNAME_LENGTH>
+    template <size_t MAX_USERS, size_t MAX_MESSAGES_PER_USER, size_t MAX_MESSAGE_SIZE, size_t MAX_USERNAME_LENGTH>
     UserManager<MAX_USERS, MAX_MESSAGES, MAX_MESSAGE_SIZE, MAX_USERNAME_LENGTH>::UserManager() : m_dictionarySize(0)
     {
         memset(m_userToMessageQueue, 0, MAX_USERS * sizeof(UserEntity<MAX_MESSAGES, MAX_MESSAGE_SIZE, MAX_USERNAME_LENGTH>));
     }
 
-    template <size_t MAX_USERS, size_t MAX_MESSAGES, size_t MAX_MESSAGE_SIZE, size_t MAX_USERNAME_LENGTH>
-    std::expected<void, ErrorCode> UserManager<MAX_USERS, MAX_MESSAGES, MAX_MESSAGE_SIZE, MAX_USERNAME_LENGTH>::AddUser(UserEntity<MAX_MESSAGES, MAX_MESSAGE_SIZE, MAX_USERNAME_LENGTH> usernameToAdd)
+    template <size_t MAX_USERS, size_t MAX_MESSAGES_PER_USER, size_t MAX_MESSAGE_SIZE, size_t MAX_USERNAME_LENGTH>
+    std::expected<void, ErrorCode> UserManager<MAX_USERS, MAX_MESSAGES, MAX_MESSAGE_SIZE, MAX_USERNAME_LENGTH>::AddUser(UserEntity<MAX_MESSAGES_PER_USER, MAX_MESSAGE_SIZE, MAX_USERNAME_LENGTH> usernameToAdd)
     {
         if (m_dictionarySize == MAX_USERS)
         {
@@ -78,7 +78,7 @@ namespace Chat
         return {};
     }
 
-    template <size_t MAX_USERS, size_t MAX_MESSAGES, size_t MAX_MESSAGE_SIZE, size_t MAX_USERNAME_LENGTH>
+    template <size_t MAX_USERS, size_t MAX_MESSAGES_PER_USER, size_t MAX_MESSAGE_SIZE, size_t MAX_USERNAME_LENGTH>
     std::expected<Message<MAX_MESSAGE_SIZE>, ErrorCode> UserManager<MAX_USERS, MAX_MESSAGES, MAX_MESSAGE_SIZE, MAX_USERNAME_LENGTH>::GetMessage(uint8_t *username, size_t usernameLength)
     {
         if (username == nullptr || usernameLength > MAX_USERNAME_LENGTH)
@@ -97,7 +97,7 @@ namespace Chat
         return std::unexpected(ErrorCode::NOT_FOUND);
     }
 
-    template <size_t MAX_USERS, size_t MAX_MESSAGES, size_t MAX_MESSAGE_SIZE, size_t MAX_USERNAME_LENGTH>
+    template <size_t MAX_USERS, size_t MAX_MESSAGES_PER_USER, size_t MAX_MESSAGE_SIZE, size_t MAX_USERNAME_LENGTH>
     std::expected<void, ErrorCode> UserManager<MAX_USERS, MAX_MESSAGES, MAX_MESSAGE_SIZE, MAX_USERNAME_LENGTH>::BroadcastMessage(uint8_t *username, size_t usernameLength, uint8_t *message, size_t messageLength)
     {
         if (username == nullptr || message == nullptr || usernameLength > MAX_USERNAME_LENGTH || messageLength > MAX_MESSAGE_SIZE)
@@ -118,7 +118,7 @@ namespace Chat
         return {};
     }
 
-    template <size_t MAX_USERS, size_t MAX_MESSAGES, size_t MAX_MESSAGE_SIZE, size_t MAX_USERNAME_LENGTH>
+    template <size_t MAX_USERS, size_t MAX_MESSAGES_PER_USER, size_t MAX_MESSAGE_SIZE, size_t MAX_USERNAME_LENGTH>
     UserManager<MAX_USERS, MAX_MESSAGES, MAX_MESSAGE_SIZE, MAX_USERNAME_LENGTH>::~UserManager()
     {
         m_dictionarySize = 0;
