@@ -19,7 +19,7 @@ namespace Chat
      * @brief Represents a server which can sequentially accept incoming client connections
      */
     using fd_t = int;
-    template <size_t MAX_USERS, size_t MAX_MESSAGES_PER_USER, size_t MAX_MESSAGE_SIZE, size_t MAX_USERNAME_LENGTH>
+    template <size_t MAX_USERS, size_t MAX_MESSAGES, size_t MAX_MESSAGE_SIZE, size_t MAX_USERNAME_LENGTH>
     class Server
     {
     public:
@@ -52,10 +52,10 @@ namespace Chat
 
 static constexpr int SOCKET_ERROR_RETURN_VALUE = -1;
 
-template <size_t MAX_USERS, size_t MAX_MESSAGES_PER_USER, size_t MAX_MESSAGE_SIZE, size_t MAX_USERNAME_LENGTH>
+template <size_t MAX_USERS, size_t MAX_MESSAGES, size_t MAX_MESSAGE_SIZE, size_t MAX_USERNAME_LENGTH>
 Chat::Server<MAX_USERS, MAX_MESSAGES, MAX_MESSAGE_SIZE, MAX_USERNAME_LENGTH>::Server() : m_init(), m_clientConnected(), m_socket(), m_clientSocket() {}
 
-template <size_t MAX_USERS, size_t MAX_MESSAGES_PER_USER, size_t MAX_MESSAGE_SIZE, size_t MAX_USERNAME_LENGTH>
+template <size_t MAX_USERS, size_t MAX_MESSAGES, size_t MAX_MESSAGE_SIZE, size_t MAX_USERNAME_LENGTH>
 std::expected<void, Chat::ErrorCode> Chat::Server<MAX_USERS, MAX_MESSAGES, MAX_MESSAGE_SIZE, MAX_USERNAME_LENGTH>::Initialize(uint16_t port, size_t listenQueueAmount)
 {
     std::expected<void, Chat::ErrorCode> returnCode;
@@ -99,13 +99,14 @@ std::expected<void, Chat::ErrorCode> Chat::Server<MAX_USERS, MAX_MESSAGES, MAX_M
     m_init = true;
     return {};
 }
-template <size_t MAX_USERS, size_t MAX_MESSAGES_PER_USER, size_t MAX_MESSAGE_SIZE, size_t MAX_USERNAME_LENGTH>
+template <size_t MAX_USERS, size_t MAX_MESSAGES, size_t MAX_MESSAGE_SIZE, size_t MAX_USERNAME_LENGTH>
 std::expected<void, Chat::ErrorCode> Chat::Server<MAX_USERS, MAX_MESSAGES, MAX_MESSAGE_SIZE, MAX_USERNAME_LENGTH>::Run()
 {
     std::expected<void, Chat::ErrorCode> returnCode;
     Chat::PollerData<MAX_MESSAGES, MAX_MESSAGE_SIZE, MAX_USERNAME_LENGTH> serverSocketPollerData;
     Chat::UserEntity<MAX_MESSAGES, MAX_MESSAGE_SIZE, MAX_USERNAME_LENGTH> serverUserEntity;
-    serverUserEntity.username = "";
+
+    memset(serverUserEntity.username, 0, MAX_USERNAME_LENGTH);
     serverUserEntity.usernameLength = 0;
 
     serverSocketPollerData.fileDescriptor = m_socket;
@@ -127,7 +128,7 @@ std::expected<void, Chat::ErrorCode> Chat::Server<MAX_USERS, MAX_MESSAGES, MAX_M
     }
 }
 
-template <size_t MAX_USERS, size_t MAX_MESSAGES_PER_USER, size_t MAX_MESSAGE_SIZE, size_t MAX_USERNAME_LENGTH>
+template <size_t MAX_USERS, size_t MAX_MESSAGES, size_t MAX_MESSAGE_SIZE, size_t MAX_USERNAME_LENGTH>
 Chat::Server<MAX_USERS, MAX_MESSAGES, MAX_MESSAGE_SIZE, MAX_USERNAME_LENGTH>::~Server()
 {
     if (!m_init)

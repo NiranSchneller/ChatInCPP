@@ -30,8 +30,8 @@ namespace Chat
          *
          * @returns Error Code
          */
-        template <size_t MAX_MESSAGES_PER_USER, size_t MAX_MESSAGE_SIZE, size_t MAX_USERNAME_LENGTH>
-        std::expected<void, ErrorCode> AddToPoll(struct PollerData<MAX_MESSAGES_PER_USER, MAX_MESSAGE_SIZE, MAX_USERNAME_LENGTH> *data);
+        template <size_t MAX_MESSAGES, size_t MAX_MESSAGE_SIZE, size_t MAX_USERNAME_LENGTH>
+        std::expected<void, ErrorCode> AddToPoll(struct PollerData<MAX_MESSAGES, MAX_MESSAGE_SIZE, MAX_USERNAME_LENGTH> *data);
 
         /**
          * @brief Removes specified file descriptor from Polling
@@ -50,8 +50,8 @@ namespace Chat
          *
          * @returns amount of PollerData's in the array or error code.
          */
-        template <size_t MAX_MESSAGES_PER_USER, size_t MAX_MESSAGE_SIZE, size_t MAX_USERNAME_LENGTH>
-        std::expected<size_t, ErrorCode> GetActive(struct PollerData<MAX_MESSAGES_PER_USER, MAX_MESSAGE_SIZE, MAX_USERNAME_LENGTH> **o_dataArray, size_t dataArraySize); // Returns amount of PollerData in arr
+        template <size_t MAX_MESSAGES, size_t MAX_MESSAGE_SIZE, size_t MAX_USERNAME_LENGTH>
+        std::expected<size_t, ErrorCode> GetActive(struct PollerData<MAX_MESSAGES, MAX_MESSAGE_SIZE, MAX_USERNAME_LENGTH> **o_dataArray, size_t dataArraySize); // Returns amount of PollerData in arr
 
     private:
         fd_t m_interestListFD = 0;
@@ -79,12 +79,12 @@ namespace Chat
     }
 
     template <size_t MAX_USERS>
-    template <size_t MAX_MESSAGES_PER_USER, size_t MAX_MESSAGE_SIZE, size_t MAX_USERNAME_LENGTH>
+    template <size_t MAX_MESSAGES, size_t MAX_MESSAGE_SIZE, size_t MAX_USERNAME_LENGTH>
     std::expected<void, ErrorCode> Poller<MAX_USERS>::AddToPoll(struct PollerData<MAX_MESSAGES, MAX_MESSAGE_SIZE, MAX_USERNAME_LENGTH> *data)
     {
         struct epoll_event event;
         event.events = EPOLLIN;
-        event.data.u64 = data;
+        event.data.u64 = reinterpret_cast<uintptr_t>(static_cast<void *>(data));
 
         if (epoll_ctl(m_interestListFD, EPOLL_CTL_ADD, data->fileDescriptor, &event) == FAILED_FD)
         {
@@ -106,7 +106,7 @@ namespace Chat
     }
 
     template <size_t MAX_USERS>
-    template <size_t MAX_MESSAGES_PER_USER, size_t MAX_MESSAGE_SIZE, size_t MAX_USERNAME_LENGTH>
+    template <size_t MAX_MESSAGES, size_t MAX_MESSAGE_SIZE, size_t MAX_USERNAME_LENGTH>
     std::expected<size_t, ErrorCode> Poller<MAX_USERS>::GetActive(struct PollerData<MAX_MESSAGES, MAX_MESSAGE_SIZE, MAX_USERNAME_LENGTH> **o_dataArray, size_t dataArraySize)
     {
         if (dataArraySize < MAX_USERS)
@@ -115,15 +115,15 @@ namespace Chat
         }
 
         struct epoll_event events[MAX_USERS];
-        int amount = epoll_wait(m_interestListFD, &events, MAX_USERS, -1);
+        int amount = epoll_wait(m_interestListFD, events, MAX_USERS, -1);
         if (amount == FAILED_FD)
         {
             return std::unexpected(ErrorCode::EPOLL_ERROR);
         }
 
-        for (size_t i = 0; i < amount; i++)
+        for (int i = 0; i < amount; i++)
         {
-            o_dataArray[i] = events[i].data.u64;
+            o_dataArray[i] = static_cast<struct PollerData<MAX_MESSAGES, MAX_MESSAGE_SIZE, MAX_USERNAME_LENGTH> *>(reinterpret_cast<void*>(events[i].data.u64));
         }
 
         return amount;

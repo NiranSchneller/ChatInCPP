@@ -7,7 +7,7 @@
 
 namespace Chat
 {
-    template <size_t MAX_MESSAGES_PER_USER, size_t MAX_MESSAGE_SIZE, size_t MAX_USERNAME_LENGTH>
+    template <size_t MAX_MESSAGES, size_t MAX_MESSAGE_SIZE, size_t MAX_USERNAME_LENGTH>
     struct UserEntity
     {
         uint8_t username[MAX_USERNAME_LENGTH];

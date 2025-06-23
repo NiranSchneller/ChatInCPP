@@ -11,7 +11,7 @@
 
 namespace Chat
 {
-    template <size_t MAX_MESSAGES_PER_USER, size_t MAX_MESSAGE_SIZE>
+    template <size_t MAX_MESSAGES, size_t MAX_MESSAGE_SIZE>
     class MessageQueue
     {
     public:
@@ -43,19 +43,16 @@ namespace Chat
     private:
         size_t m_queueSize = 0;
         size_t m_firstVacantSlot = 0;
-        Message<MAX_MESSAGE_SIZE> m_messagesBuffer[MAX_MESSAGES_PER_USER];
+        Message<MAX_MESSAGE_SIZE> m_messagesBuffer[MAX_MESSAGES] = {};
     };
 
-    template <size_t MAX_MESSAGES_PER_USER, size_t MAX_MESSAGE_SIZE>
-    MessageQueue<MAX_MESSAGES, MAX_MESSAGE_SIZE>::MessageQueue() : m_queueSize(0), m_firstVacantSlot(0)
-    {
-        memset(m_messagesBuffer, 0, MAX_MESSAGES_PER_USER * sizeof(Message<MAX_MESSAGE_SIZE>));
-    }
+    template <size_t MAX_MESSAGES, size_t MAX_MESSAGE_SIZE>
+    MessageQueue<MAX_MESSAGES, MAX_MESSAGE_SIZE>::MessageQueue() : m_queueSize(0), m_firstVacantSlot(0) {}
 
-    template <size_t MAX_MESSAGES_PER_USER, size_t MAX_MESSAGE_SIZE>
+    template <size_t MAX_MESSAGES, size_t MAX_MESSAGE_SIZE>
     std::expected<void, ErrorCode> MessageQueue<MAX_MESSAGES, MAX_MESSAGE_SIZE>::Push(uint8_t *message, size_t messageLength)
     {
-        if (m_queueSize == MAX_MESSAGES_PER_USER)
+        if (m_queueSize == MAX_MESSAGES)
         {
             return std::unexpected(ErrorCode::DATA_STRUCTURE_FULL);
         }
@@ -75,7 +72,7 @@ namespace Chat
         return {};
     }
 
-    template <size_t MAX_MESSAGES_PER_USER, size_t MAX_MESSAGE_SIZE>
+    template <size_t MAX_MESSAGES, size_t MAX_MESSAGE_SIZE>
     std::expected<Message<MAX_MESSAGE_SIZE>, ErrorCode> MessageQueue<MAX_MESSAGES, MAX_MESSAGE_SIZE>::Pop()
     {
         if (m_queueSize == 0)
@@ -87,13 +84,13 @@ namespace Chat
         return m_messagesBuffer[--m_firstVacantSlot];
     }
 
-    template <size_t MAX_MESSAGES_PER_USER, size_t MAX_MESSAGE_SIZE>
+    template <size_t MAX_MESSAGES, size_t MAX_MESSAGE_SIZE>
     size_t MessageQueue<MAX_MESSAGES, MAX_MESSAGE_SIZE>::GetQueueSize()
     {
         return m_queueSize;
     }
 
-    template <size_t MAX_MESSAGES_PER_USER, size_t MAX_MESSAGE_SIZE>
+    template <size_t MAX_MESSAGES, size_t MAX_MESSAGE_SIZE>
     MessageQueue<MAX_MESSAGES, MAX_MESSAGE_SIZE>::~MessageQueue()
     {
         m_queueSize = 0;
