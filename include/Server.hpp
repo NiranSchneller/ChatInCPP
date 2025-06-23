@@ -40,20 +40,23 @@ namespace Chat
 
     private:
         bool m_init = false;
-        bool m_clientConnected = false;
         fd_t m_socket = 0;
-        fd_t m_clientSocket = 0;
+        size_t m_currentClientIndex = 0;
 
         Poller<MAX_USERS> m_poller;
         UserManager<MAX_USERS, MAX_MESSAGES, MAX_MESSAGE_SIZE, MAX_USERNAME_LENGTH> m_userManager;
         uint8_t m_buffer[MAX_MESSAGE_SIZE];
+
+        std::expected<void, ErrorCode> AddClientSocketToPoll(Chat::UserEntity<MAX_MESSAGES, MAX_MESSAGE_SIZE, MAX_USERNAME_LENGTH> **clientSocketsUserEntities,
+                                                             PollerData<MAX_MESSAGES, MAX_MESSAGE_SIZE, MAX_USERNAME_LENGTH> **clientSocketsPollerDatas,
+                                                             size_t currentIndex);
     };
 } // namespace Chat
 
 static constexpr int SOCKET_ERROR_RETURN_VALUE = -1;
 
 template <size_t MAX_USERS, size_t MAX_MESSAGES, size_t MAX_MESSAGE_SIZE, size_t MAX_USERNAME_LENGTH>
-Chat::Server<MAX_USERS, MAX_MESSAGES, MAX_MESSAGE_SIZE, MAX_USERNAME_LENGTH>::Server() : m_init(), m_clientConnected(), m_socket(), m_clientSocket() {}
+Chat::Server<MAX_USERS, MAX_MESSAGES, MAX_MESSAGE_SIZE, MAX_USERNAME_LENGTH>::Server() : m_init(), m_socket(), m_currentClientIndex() {}
 
 template <size_t MAX_USERS, size_t MAX_MESSAGES, size_t MAX_MESSAGE_SIZE, size_t MAX_USERNAME_LENGTH>
 std::expected<void, Chat::ErrorCode> Chat::Server<MAX_USERS, MAX_MESSAGES, MAX_MESSAGE_SIZE, MAX_USERNAME_LENGTH>::Initialize(uint16_t port, size_t listenQueueAmount)
@@ -102,7 +105,14 @@ std::expected<void, Chat::ErrorCode> Chat::Server<MAX_USERS, MAX_MESSAGES, MAX_M
 template <size_t MAX_USERS, size_t MAX_MESSAGES, size_t MAX_MESSAGE_SIZE, size_t MAX_USERNAME_LENGTH>
 std::expected<void, Chat::ErrorCode> Chat::Server<MAX_USERS, MAX_MESSAGES, MAX_MESSAGE_SIZE, MAX_USERNAME_LENGTH>::Run()
 {
-    std::expected<void, Chat::ErrorCode> returnCode;
+    ssize_t sendRecvResult = 0;
+
+    if (!m_init)
+    {
+        return std::unexpected(Chat::ErrorCode::UNINITIALIZED);
+    }
+
+    std::expected<size_t, Chat::ErrorCode> getActiveSocketsReturnCode;
     Chat::PollerData<MAX_MESSAGES, MAX_MESSAGE_SIZE, MAX_USERNAME_LENGTH> serverSocketPollerData;
     Chat::UserEntity<MAX_MESSAGES, MAX_MESSAGE_SIZE, MAX_USERNAME_LENGTH> serverUserEntity;
 
@@ -110,22 +120,85 @@ std::expected<void, Chat::ErrorCode> Chat::Server<MAX_USERS, MAX_MESSAGES, MAX_M
     serverUserEntity.usernameLength = 0;
 
     serverSocketPollerData.fileDescriptor = m_socket;
+    printf("Server socket fd: %d\n", m_socket);
     serverSocketPollerData.userEntity = &serverUserEntity;
 
-    returnCode = m_poller.AddToPoll(&serverSocketPollerData);
-    if (!returnCode.has_value())
+    std::expected<void, Chat::ErrorCode> pollerReturnCode = m_poller.AddToPoll(&serverSocketPollerData);
+    if (!pollerReturnCode.has_value())
     {
-        return returnCode;
+        return pollerReturnCode;
     }
 
-    PollerData<MAX_MESSAGES, MAX_MESSAGE_SIZE, MAX_USERNAME_LENGTH> *socketPollerDatas[MAX_USERS] = {0};
+    Chat::UserEntity<MAX_MESSAGES, MAX_MESSAGE_SIZE, MAX_USERNAME_LENGTH> *clientSocketsUserEntities[MAX_USERS] = {};
+    PollerData<MAX_MESSAGES, MAX_MESSAGE_SIZE, MAX_USERNAME_LENGTH> *clientSocketsPollerDatas[MAX_USERS] = {};
+    size_t currentIndex = 0;
+
+    PollerData<MAX_MESSAGES, MAX_MESSAGE_SIZE, MAX_USERNAME_LENGTH> *activeSocketsPollerDatas[MAX_USERS] = {};
     while (true)
     {
-        if (!m_poller.GetActive(socketPollerDatas, MAX_USERS).has_value())
+        getActiveSocketsReturnCode = m_poller.GetActive(activeSocketsPollerDatas, MAX_USERS);
+        if (!getActiveSocketsReturnCode.has_value())
         {
             printf("Poller getActive Failed! Critical error!\n");
+            return {};
+        }
+
+        for (size_t i = 0; i < getActiveSocketsReturnCode.value(); i++)
+        {
+            printf("Active FD: %d\n", activeSocketsPollerDatas[i]->fileDescriptor);
+
+            if (activeSocketsPollerDatas[i]->fileDescriptor == m_socket)
+            {
+                if (currentIndex >= MAX_USERS)
+                {
+                    printf("Max Users reached! Can't accept new client!");
+                    continue;
+                }
+
+                if (!AddClientSocketToPoll(clientSocketsUserEntities, clientSocketsPollerDatas, currentIndex).has_value())
+                {
+                    printf("AddClientSocketToPoll failed!\n");
+                    continue;
+                }
+                currentIndex++;
+                m_currentClientIndex++;
+                continue;
+            }
+
+            sendRecvResult = recv(activeSocketsPollerDatas[i]->fileDescriptor, m_buffer, MAX_MESSAGE_SIZE, 0);
+
+            // amount received in 'sendRecvResult'
+            if (sendRecvResult == SOCKET_ERROR_RETURN_VALUE || sendRecvResult == 0)
+            {
+                printf("Could not broadcast FD Message: %d\n", activeSocketsPollerDatas[i]->fileDescriptor);
+                continue;
+            }
+
+            m_userManager.BroadcastMessage()
         }
     }
+    return {};
+}
+
+template <size_t MAX_USERS, size_t MAX_MESSAGES, size_t MAX_MESSAGE_SIZE, size_t MAX_USERNAME_LENGTH>
+std::expected<void, Chat::ErrorCode> Chat::Server<MAX_USERS, MAX_MESSAGES, MAX_MESSAGE_SIZE, MAX_USERNAME_LENGTH>::AddClientSocketToPoll(Chat::UserEntity<MAX_MESSAGES, MAX_MESSAGE_SIZE, MAX_USERNAME_LENGTH> **clientSocketsUserEntities,
+                                                                                                                                         PollerData<MAX_MESSAGES, MAX_MESSAGE_SIZE, MAX_USERNAME_LENGTH> **clientSocketsPollerDatas,
+                                                                                                                                         size_t currentIndex)
+{
+    fd_t clientSocket = accept(m_socket, NULL, NULL);
+    if (clientSocket == SOCKET_ERROR_RETURN_VALUE)
+    {
+        return std::unexpected(Chat::ErrorCode::CLIENT_CONNECTION_INITIALIZATION_ERROR);
+    }
+
+    clientSocketsPollerDatas[currentIndex]->fileDescriptor = clientSocket;
+
+    memset(clientSocketsUserEntities[currentIndex]->username, 0, MAX_USERNAME_LENGTH);
+    clientSocketsUserEntities[currentIndex]->usernameLength = m_currentClientIndex;
+
+    clientSocketsPollerDatas[currentIndex]->userEntity = clientSocketsUserEntities[currentIndex];
+
+    return m_userManager.AddUser(clientSocketsPollerDatas[currentIndex]->userEntity);
 }
 
 template <size_t MAX_USERS, size_t MAX_MESSAGES, size_t MAX_MESSAGE_SIZE, size_t MAX_USERNAME_LENGTH>
@@ -136,10 +209,6 @@ Chat::Server<MAX_USERS, MAX_MESSAGES, MAX_MESSAGE_SIZE, MAX_USERNAME_LENGTH>::~S
         return; // Don't close unopened socket
     }
     close(m_socket);
-    if (m_clientConnected)
-    {
-        close(m_clientSocket);
-    }
 
     m_init = false;
 }

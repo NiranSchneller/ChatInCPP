@@ -30,7 +30,7 @@ namespace Chat
          *
          * @returns ErrorCode on error
          */
-        std::expected<void, ErrorCode> AddUser(UserEntity<MAX_MESSAGES, MAX_MESSAGE_SIZE, MAX_USERNAME_LENGTH> usernameToAdd);
+        std::expected<void, ErrorCode> AddUser(UserEntity<MAX_MESSAGES, MAX_MESSAGE_SIZE, MAX_USERNAME_LENGTH> *usernameToAdd);
 
         /**
          * @brief Get a message for the said username. In case of no message, size will be 0.
@@ -58,14 +58,14 @@ namespace Chat
 
     private:
         size_t m_dictionarySize = 0;
-        UserEntity<MAX_MESSAGES, MAX_MESSAGE_SIZE, MAX_USERNAME_LENGTH> m_userToMessageQueue[MAX_USERS] = {};
+        UserEntity<MAX_MESSAGES, MAX_MESSAGE_SIZE, MAX_USERNAME_LENGTH> *m_userToMessageQueue[MAX_USERS] = {};
     };
 
     template <size_t MAX_USERS, size_t MAX_MESSAGES, size_t MAX_MESSAGE_SIZE, size_t MAX_USERNAME_LENGTH>
     UserManager<MAX_USERS, MAX_MESSAGES, MAX_MESSAGE_SIZE, MAX_USERNAME_LENGTH>::UserManager() : m_dictionarySize(0) {}
 
     template <size_t MAX_USERS, size_t MAX_MESSAGES, size_t MAX_MESSAGE_SIZE, size_t MAX_USERNAME_LENGTH>
-    std::expected<void, ErrorCode> UserManager<MAX_USERS, MAX_MESSAGES, MAX_MESSAGE_SIZE, MAX_USERNAME_LENGTH>::AddUser(UserEntity<MAX_MESSAGES, MAX_MESSAGE_SIZE, MAX_USERNAME_LENGTH> usernameToAdd)
+    std::expected<void, ErrorCode> UserManager<MAX_USERS, MAX_MESSAGES, MAX_MESSAGE_SIZE, MAX_USERNAME_LENGTH>::AddUser(UserEntity<MAX_MESSAGES, MAX_MESSAGE_SIZE, MAX_USERNAME_LENGTH> *usernameToAdd)
     {
         if (m_dictionarySize == MAX_USERS)
         {
@@ -86,7 +86,7 @@ namespace Chat
 
         for (size_t i = 0; i < m_dictionarySize; i++)
         {
-            if (m_userToMessageQueue[i].usernameLength == usernameLength && memcmp(m_userToMessageQueue[i].username, username, usernameLength) == MEMCMP_EQUAL_VALUE)
+            if (m_userToMessageQueue[i]->usernameLength == usernameLength && memcmp(m_userToMessageQueue[i]->username, username, usernameLength) == MEMCMP_EQUAL_VALUE)
             {
                 return m_userToMessageQueue[i]->userMessageQueue.Pop();
             }
