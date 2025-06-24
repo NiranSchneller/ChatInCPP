@@ -129,11 +129,13 @@ std::expected<void, Chat::ErrorCode> Chat::Server<MAX_USERS, MAX_MESSAGES, MAX_M
         return pollerReturnCode;
     }
 
-    Chat::UserEntity<MAX_MESSAGES, MAX_MESSAGE_SIZE, MAX_USERNAME_LENGTH> *clientSocketsUserEntities[MAX_USERS] = {};
-    PollerData<MAX_MESSAGES, MAX_MESSAGE_SIZE, MAX_USERNAME_LENGTH> *clientSocketsPollerDatas[MAX_USERS] = {};
+    Chat::UserEntity<MAX_MESSAGES, MAX_MESSAGE_SIZE, MAX_USERNAME_LENGTH> *clientSocketsUserEntities[MAX_USERS];
+    PollerData<MAX_MESSAGES, MAX_MESSAGE_SIZE, MAX_USERNAME_LENGTH> *clientSocketsPollerDatas[MAX_USERS];
+
+    std::expected<struct PollerData<MAX_MESSAGES, MAX_MESSAGE_SIZE, MAX_USERNAME_LENGTH> *, ErrorCode> matchingUserForFD;
     size_t currentIndex = 0;
 
-    PollerData<MAX_MESSAGES, MAX_MESSAGE_SIZE, MAX_USERNAME_LENGTH> *activeSocketsPollerDatas[MAX_USERS] = {};
+    PollerData<MAX_MESSAGES, MAX_MESSAGE_SIZE, MAX_USERNAME_LENGTH> *activeSocketsPollerDatas[MAX_USERS];
     while (true)
     {
         getActiveSocketsReturnCode = m_poller.GetActive(activeSocketsPollerDatas, MAX_USERS);
@@ -143,6 +145,7 @@ std::expected<void, Chat::ErrorCode> Chat::Server<MAX_USERS, MAX_MESSAGES, MAX_M
             return {};
         }
 
+        // Iterate over all active sockets received, send
         for (size_t i = 0; i < getActiveSocketsReturnCode.value(); i++)
         {
             printf("Active FD: %d\n", activeSocketsPollerDatas[i]->fileDescriptor);
@@ -155,6 +158,7 @@ std::expected<void, Chat::ErrorCode> Chat::Server<MAX_USERS, MAX_MESSAGES, MAX_M
                     continue;
                 }
 
+                printf("test\n");
                 if (!AddClientSocketToPoll(clientSocketsUserEntities, clientSocketsPollerDatas, currentIndex).has_value())
                 {
                     printf("AddClientSocketToPoll failed!\n");
@@ -173,8 +177,34 @@ std::expected<void, Chat::ErrorCode> Chat::Server<MAX_USERS, MAX_MESSAGES, MAX_M
                 printf("Could not broadcast FD Message: %d\n", activeSocketsPollerDatas[i]->fileDescriptor);
                 continue;
             }
+            matchingUserForFD = m_poller.template GetPollerDataByFD<MAX_MESSAGES, MAX_MESSAGE_SIZE, MAX_USERNAME_LENGTH>(activeSocketsPollerDatas[i]->fileDescriptor);
+            if (!matchingUserForFD.has_value())
+            {
+                printf("Poller couldnt find Matching data by FD!\n");
+                continue;
+            }
 
-            m_userManager.BroadcastMessage()
+            if (!m_userManager.BroadcastMessage(matchingUserForFD.value()->userEntity->username, matchingUserForFD.value()->userEntity->usernameLength, m_buffer, sendRecvResult).has_value())
+            {
+                printf("Could not broadcast message!\n");
+                continue;
+            }
+        }
+
+        // Send all messages
+        for (size_t i = 0; i < currentIndex; i++)
+        {
+            std::expected<Message<MAX_MESSAGE_SIZE>, ErrorCode> retCode = m_userManager.GetMessage(clientSocketsPollerDatas[i]->userEntity->username, clientSocketsPollerDatas[i]->userEntity->usernameLength);
+            if (!retCode.has_value())
+            {
+                printf("Could not get message for FD: %d\n", clientSocketsPollerDatas[i]->fileDescriptor);
+                continue;
+            }
+
+            if (send(clientSocketsPollerDatas[i]->fileDescriptor, retCode.value().message, retCode.value().messageSize, 0) == SOCKET_ERROR_RETURN_VALUE)
+            {
+                printf("Could not send message to FD: %d\n", clientSocketsPollerDatas[i]->fileDescriptor);
+            }
         }
     }
     return {};
@@ -190,14 +220,17 @@ std::expected<void, Chat::ErrorCode> Chat::Server<MAX_USERS, MAX_MESSAGES, MAX_M
     {
         return std::unexpected(Chat::ErrorCode::CLIENT_CONNECTION_INITIALIZATION_ERROR);
     }
-
+    printf("Assigning FD!\n");
     clientSocketsPollerDatas[currentIndex]->fileDescriptor = clientSocket;
 
+    printf("Setting username!\n");
     memset(clientSocketsUserEntities[currentIndex]->username, 0, MAX_USERNAME_LENGTH);
     clientSocketsUserEntities[currentIndex]->usernameLength = m_currentClientIndex;
 
+    printf("Setting user entity!\n");
     clientSocketsPollerDatas[currentIndex]->userEntity = clientSocketsUserEntities[currentIndex];
 
+    printf("Adding user!\n");
     return m_userManager.AddUser(clientSocketsPollerDatas[currentIndex]->userEntity);
 }
 

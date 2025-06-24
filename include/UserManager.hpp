@@ -58,7 +58,7 @@ namespace Chat
 
     private:
         size_t m_dictionarySize = 0;
-        UserEntity<MAX_MESSAGES, MAX_MESSAGE_SIZE, MAX_USERNAME_LENGTH> *m_userToMessageQueue[MAX_USERS] = {};
+        UserEntity<MAX_MESSAGES, MAX_MESSAGE_SIZE, MAX_USERNAME_LENGTH> *m_userToMessageQueue[MAX_USERS];
     };
 
     template <size_t MAX_USERS, size_t MAX_MESSAGES, size_t MAX_MESSAGE_SIZE, size_t MAX_USERNAME_LENGTH>
@@ -105,7 +105,7 @@ namespace Chat
 
         for (size_t i = 0; i < m_dictionarySize; i++)
         {
-            if (m_userToMessageQueue[i].usernameLength == usernameLength && memcmp(m_userToMessageQueue[i].username, username, usernameLength) == MEMCMP_EQUAL_VALUE)
+            if (m_userToMessageQueue[i]->usernameLength == usernameLength && memcmp(m_userToMessageQueue[i]->username, username, usernameLength) == MEMCMP_EQUAL_VALUE)
             {
                 continue; // Don't broadcast to self
             }
